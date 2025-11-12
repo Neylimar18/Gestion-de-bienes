@@ -1,0 +1,139 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Activos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <style>
+    body {
+        background-color: #f3e7eaff !important;
+    }
+
+    .btn-activo {
+        background:#D02727;
+        border: 2px solid white;
+        border-radius:10px;
+        transition: 0.3s ease-in-out;
+    }
+
+    .btn-activo:hover {
+        background:white;
+        color:#D02727 !important;
+        border-color:#D02727;
+        transform: scale(1.05);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+    }
+
+    .card {
+        border-width: 2px !important;
+        transition: all 0.3s ease-in-out;
+        text-align: center;
+    }
+
+    .card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-summary {
+        border-radius: 15px;
+    }
+
+    .icon-big {
+        font-size: 2.5rem;
+    }
+
+    header {
+        background: #B22222;
+    }
+    </style>
+</head>
+
+<body>
+    <!-- 🔹 Header -->
+    <header class="text-white py-3">
+        <div class="container d-flex justify-content-between align-items-center">
+            <img src="{% static 'activos/img/slider1.jpg' %}" alt="Logo" class="logo" style="width: 100px; height: auto; border-radius: 10px;">
+            <h2 class="m-0">Sistema de Gestión de Activos</h2>
+            <nav class="d-flex align-items-center">
+                <div class="dropdown">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">Salir</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    {% block content %}
+    <div class="container mt-4">
+
+        <h3 class="text-center mb-4 text-dark fw-bold">Resumen de Activos</h3>
+        <a href="{% url 'exportar_activos' %}" class="btn btn-success ms-2">
+    <i class="bi bi-file-earmark-excel"></i> Exportar Activos
+</a>
+
+
+        <!-- 🔸 Tarjetas de departamentos -->
+        <div class="row mt-3 justify-content-center">
+            {% for item in activos_por_departamento %}
+            <div class="col-md-3 col-sm-6 mb-4">
+                <a href="{% url 'detalle_departamento' departamento=item.departamento %}" class="text-decoration-none">
+                    <div class="card shadow rounded-4 text-center d-flex align-items-center justify-content-center p-3 bg-light"
+                         style="cursor:pointer; min-height:160px;">
+                        <h5 class="fw-bold text-dark mb-2">{{ item.departamento }}</h5>
+                        <h3 class="text-primary fw-bold">{{ item.total }}</h3>
+                    </div>
+                </a>
+            </div>
+            {% empty %}
+                <p class="text-center text-muted">No hay activos registrados todavía.</p>
+            {% endfor %}
+        </div>
+
+        <!-- 🔸 Gráfico (solo para admin) -->
+        {% if user.is_superuser %}
+        <div class="card mt-5 p-4 shadow-sm rounded-4">
+            <h5 class="text-center fw-bold mb-3">Gráfico de Activos por Departamento</h5>
+            <canvas id="activosChart" height="100"></canvas>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% if user.is_superuser %}
+    <script>
+    const ctx = document.getElementById('activosChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ labels|safe }},
+            datasets: [{
+                label: 'Activos',
+                data: {{ data|safe }},
+                backgroundColor: 'rgba(178, 34, 34, 0.7)',
+                borderColor: 'rgba(178, 34, 34, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+    </script>
+    {% endif %}
+
+    {% endblock %}
+</body>
+</html>

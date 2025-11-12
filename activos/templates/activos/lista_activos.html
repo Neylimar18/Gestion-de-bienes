@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+
+    {% if departamento %}
+        <h4 class="text-center fw-bold mb-4 text-success">
+            Activos Operativos del Departamento: <strong>{{ departamento }}</strong>
+        </h4>
+    {% else %}
+        <h4 class="text-center fw-bold mb-4 text-success">
+            Lista General de Activos Operativos
+        </h4>
+    {% endif %}
+
+    <!-- Buscador -->
+    <form method="get" class="mb-4 d-flex justify-content-center">
+        {% if departamento %}
+            <input type="hidden" name="depto" value="{{ departamento }}">
+        {% endif %}
+        <div class="input-group" style="max-width: 400px;">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por código o descripción" value="{{ q|default:'' }}">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+    </form>
+
+    {% if activos %}
+    <div class="table-responsive shadow-sm rounded-4">
+        <table class="table table-hover align-middle">
+            <thead class="table-success text-center">
+                <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Departamento</th>
+                    <th>Condición</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activo in activos %}
+                <tr class="text-center">
+                    <td>{{ activo.codigo }}</td>
+                    <td>{{ activo.descripcion }}</td>
+                    <td>{{ activo.departamento }}</td>
+                    <td>
+                        {% if activo.condicion == "Operativo" %}
+                            <span class="badge bg-success">{{ activo.condicion }}</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">{{ activo.condicion }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if activo.activo %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'editar_activo' activo.id %}" class="btn btn-outline-primary btn-sm rounded-3">
+                            <i class="bi bi-pencil-square"></i> Editar
+                        </a>
+                       <!-- Botón que abre el modal -->
+<button type="button" class="btn btn-outline-danger btn-sm rounded-3" 
+        data-bs-toggle="modal" data-bs-target="#confirmarEliminarModal{{ activo.id }}">
+    <i class="bi bi-trash"></i> Eliminar
+</button>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="confirmarEliminarModal{{ activo.id }}" tabindex="-1" aria-labelledby="confirmarEliminarLabel{{ activo.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow">
+      <div class="modal-header bg-danger text-white rounded-top-4">
+        <h5 class="modal-title" id="confirmarEliminarLabel{{ activo.id }}">
+          <i class="bi bi-exclamation-triangle-fill"></i> Confirmar eliminación
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center fs-6">
+        ¿Seguro que deseas <strong>dar de baja</strong> el activo 
+        <br>
+        <span class="text-danger fw-bold">{{ activo.codigo }}</span>?
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+        <a href="{% url 'eliminar_activo' activo.id %}" class="btn btn-danger px-4">
+          Sí, dar de baja
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="text-center text-muted mt-4">No se encontraron activos registrados.</p>
+    {% endif %}
+
+    <!-- Botón de registro -->
+    {% if departamento %}
+    <div class="text-center mt-4">
+        <a href="{% url 'crear_activo_departamento' departamento %}" class="btn btn-success rounded-4 px-4 py-2 fw-semibold">
+            <i class="bi bi-plus-circle"></i> Registrar Activo
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

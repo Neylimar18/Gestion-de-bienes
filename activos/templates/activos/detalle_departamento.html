@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mt-4">
+  {% if user.is_superuser %}
+    <div class="text-end mb-1">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-danger fw-semibold">
+            <i class="bi bi-speedometer2"></i> Volver al Dashboard
+        </a>
+         <a href="{% url 'exportar_activos_departamento' departamento %}" class="btn btn-success">
+  <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+</a>
+
+
+    </div>
+{% endif %}
+
+  <h2 class="text-center mb-2 fw-bold">Departamento: {{ departamento }}</h2>
+
+  <div class="row justify-content-center align-items-stretch g-3">
+    <!-- Gráfica -->
+    <div class="col-md-5">
+      <div class="card shadow-sm p-4 rounded-4 h-100 text-center">
+        <h5 class="fw-bold mb-3">Distribución de Activos</h5>
+        <canvas id="graficaActivos" style="max-height: 200px;"></canvas>
+        <div class="d-flex justify-content-center mt-3 gap-3">
+          <span class="text-primary fw-semibold">
+            <i class="bi bi-square-fill text-primary"></i> Operativos
+          </span>
+          <span class="text-danger fw-semibold">
+            <i class="bi bi-square-fill text-danger"></i> Dañados
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Totales -->
+    <div class="col-md-5">
+      <div class="card shadow-sm p-4 rounded-4 h-100 text-center">
+        <!-- Total Activos -->
+        <div class="bg-primary text-white rounded-4 p-3 mb-3">
+          <h5 class="fw-bold mb-1">Total Activos</h5>
+          <h2 class="fw-bold mb-0">{{ total_activos }}</h2>
+        </div>
+
+   <!-- Activos Operativos / Dañados -->
+<div class="d-flex justify-content-between gap-3">
+  <!-- Operativos -->
+  <a href="{% url 'lista_activos' %}?depto={{ departamento }}&estado=activo" 
+     class="flex-fill border border-success rounded-4 p-3 text-center text-decoration-none"
+     style="min-height: 100px; transition: 0.3s;">
+    <h6 class="text-success fw-semibold mb-2">Operativos</h6>
+    <h3 class="fw-bold text-dark">{{ activos_operativos }}</h3>
+  </a>
+
+  <!-- Dañados -->
+  <a href="{% url 'lista_inactivos' %}?depto={{ departamento }}&estado=inactivo" 
+     class="flex-fill border border-danger rounded-4 p-3 text-center text-decoration-none"
+     style="min-height: 100px; transition: 0.3s;">
+    <h6 class="text-danger fw-semibold mb-2">Dañados</h6>
+    <h3 class="fw-bold text-dark">{{ activos_danados }}</h3>
+  </a>
+</div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botón Registrar -->
+  <div class="text-center mt-4">
+    <a href="{% url 'crear_activo_departamento' departamento %}" class="btn btn-primary rounded-4 px-4 py-2 fw-semibold">
+      <i class="bi bi-plus-circle"></i> Registrar
+    </a>
+  </div>
+</div>
+
+<!-- Script de la gráfica -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('graficaActivos').getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Operativos', 'Dañados'],
+      datasets: [{
+        data: [{{ activos_operativos }}, {{ activos_danados }}],
+        backgroundColor: ['#3b82f6', '#ef4444'],
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+</script>
+
+{% endblock %}
