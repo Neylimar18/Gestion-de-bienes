@@ -3,137 +3,175 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Gestión de Activos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SEMAT</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
-    <style>
-    body {
-        background-color: #f3e7eaff !important;
-    }
-
-    .btn-activo {
-        background:#D02727;
-        border: 2px solid white;
-        border-radius:10px;
-        transition: 0.3s ease-in-out;
-    }
-
-    .btn-activo:hover {
-        background:white;
-        color:#D02727 !important;
-        border-color:#D02727;
-        transform: scale(1.05);
-        box-shadow: 0 8px 15px rgba(0,0,0,0.3);
-    }
-
-    .card {
-        border-width: 2px !important;
-        transition: all 0.3s ease-in-out;
-        text-align: center;
-    }
-
-    .card:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-    }
-
-    .card-summary {
-        border-radius: 15px;
-    }
-
-    .icon-big {
-        font-size: 2.5rem;
-    }
-
-    header {
-        background: #B22222;
-    }
-    </style>
+    <link rel="stylesheet" href="{% static 'activos/css/styless.css' %}">
 </head>
-
 <body>
-    <!-- 🔹 Header -->
-    <header class="text-white py-3">
-        <div class="container d-flex justify-content-between align-items-center">
-            <img src="{% static 'activos/img/slider1.jpg' %}" alt="Logo" class="logo" style="width: 100px; height: auto; border-radius: 10px;">
-            <h2 class="m-0">Sistema de Gestión de Activos</h2>
-            <nav class="d-flex align-items-center">
-                <div class="dropdown">
-                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">Salir</a></li>
-                    </ul>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo-section d-flex align-items-center">
+                <div class="logo"></div>
+                <span class="brand-name">SEMAT</span>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">Navegación</div>
+            
+                
+                <div class="nav-item has-submenu" id="departamentos-menu">
+                    <i class="bi bi-building"></i>
+                    <span>Departamentos</span>
                 </div>
-            </nav>
-        </div>
-    </header>
+                <div class="submenu" id="departamentos-submenu">
+                    <!-- Los departamentos se cargarán aquí -->
+                </div>
+                
+                <div class="nav-item has-submenu" id="reportes-menu">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Reportes</span>
+                </div>
+                <div class="submenu" id="reportes-submenu">
+                    <!-- Los reportes se cargarán aquí -->
+                </div>
 
-    {% block content %}
-    <div class="container mt-4">
+                <a href="/activos/" class="nav-item">
+                    <i class="bi bi-clipboard-data"></i>
+                    <span>Activos</span>
+                </a>
 
-        <h3 class="text-center mb-4 text-dark fw-bold">Resumen de Activos</h3>
-        <a href="{% url 'exportar_activos' %}" class="btn btn-success ms-2">
-    <i class="bi bi-file-earmark-excel"></i> Exportar Activos
-</a>
-
-
-        <!-- 🔸 Tarjetas de departamentos -->
-        <div class="row mt-3 justify-content-center">
-            {% for item in activos_por_departamento %}
-            <div class="col-md-3 col-sm-6 mb-4">
-                <a href="{% url 'detalle_departamento' departamento=item.departamento %}" class="text-decoration-none">
-                    <div class="card shadow rounded-4 text-center d-flex align-items-center justify-content-center p-3 bg-light"
-                         style="cursor:pointer; min-height:160px;">
-                        <h5 class="fw-bold text-dark mb-2">{{ item.departamento }}</h5>
-                        <h3 class="text-primary fw-bold">{{ item.total }}</h3>
-                    </div>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">Configuración</div>
+                
+                <a href="{% url 'logout' %}" class="nav-item">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar Sesión</span>
                 </a>
             </div>
-            {% empty %}
-                <p class="text-center text-muted">No hay activos registrados todavía.</p>
-            {% endfor %}
         </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1 class="page-title">Dashboard de Activos</h1>
+                <div class="user-menu">
+                    <span>Administrador</span>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total de Activos</div>
+                    <div class="stat-value">{{ total_activos }}</div>
+                    <div class="stat-change">Sistema de Gestión</div>
+                </div>
+                
+                <div class="stat-card operativo">
+                    <div class="stat-title">Activos Operativos</div>
+                    <div class="stat-value">{{ activos_operativos }}</div>
+                </div>
+                
+                <div class="stat-card baja">
+                    <div class="stat-title">Activos Dañados</div>
+                    <div class="stat-value">{{activos_danados}}</div>
+                                </div>
+            </div>
+            
+            <!-- Chart Section -->
+            <div class="chart-container">
+                <div class="chart-title">Distribución por Departamento</div>
+                <div class="chart-placeholder">
+                    Gráfico de activos por departamento
+                </div>
+            </div>
 
-        <!-- 🔸 Gráfico (solo para admin) -->
-        {% if user.is_superuser %}
-        <div class="card mt-5 p-4 shadow-sm rounded-4">
-            <h5 class="text-center fw-bold mb-3">Gráfico de Activos por Departamento</h5>
-            <canvas id="activosChart" height="100"></canvas>
+        
         </div>
-        {% endif %}
-
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    {% if user.is_superuser %}
+    
     <script>
-    const ctx = document.getElementById('activosChart');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: {{ labels|safe }},
-            datasets: [{
-                label: 'Activos',
-                data: {{ data|safe }},
-                backgroundColor: 'rgba(178, 34, 34, 0.7)',
-                borderColor: 'rgba(178, 34, 34, 1)',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: { y: { beginAtZero: true } }
-        }
-    });
-    </script>
-    {% endif %}
+        // Toggle submenu de departamentos
+        document.getElementById('departamentos-menu').addEventListener('click', function() {
+            this.classList.toggle('open');
+            document.getElementById('departamentos-submenu').classList.toggle('open');
+        });
 
-    {% endblock %}
+        // Toggle submenu de reportes
+        document.getElementById('reportes-menu').addEventListener('click', function() {
+            this.classList.toggle('open');
+            document.getElementById('reportes-submenu').classList.toggle('open');
+        });
+
+        // Datos de departamentos
+        const departamentos = [
+            { nombre: "Administración", url: "{% url 'detalle_departamento' 'Administración' %}", icon: "bi-folder2-open" },
+            { nombre: "Fiscalización", url: "{% url 'detalle_departamento' 'Fiscalización' %}", icon: "bi-shield-check" },
+            { nombre: "Recaudación", url: "{% url 'detalle_departamento' 'Recaudacion' %}", icon: "bi-cash-coin" },
+            { nombre: "Inmuebles", url: "{% url 'detalle_departamento' 'Inmuebles' %}", icon: "bi-house-door" },
+            { nombre: "Gerencia Licores", url: "{% url 'detalle_departamento' 'Gerencia Licores' %}", icon: "bi-cup-straw" },
+            { nombre: "Gerencia General", url: "{% url 'detalle_departamento' 'Gerencia General' %}", icon: "bi-building" },
+            { nombre: "Jurídica", url: "{% url 'detalle_departamento' 'Juridica' %}", icon: "bi-bank" },
+            { nombre: "Informática", url: "{% url 'detalle_departamento' 'Informatica' %}", icon: "bi-pc-display" }
+        ];
+
+        // Datos de reportes
+        const reportes = [
+            { nombre: "Reporte GeneralExcel", url: "{% url 'exportar_activos' %}" , icon: "bi-file-bar-graph" },
+            { nombre: "Reporte General PDF", url: "{% url 'exportar_pdf_activos'%}" , icon: "bi-file-bar-graph" },
+        ];
+
+        // Generar submenu de departamentos
+        const submenuDepartamentos = document.getElementById('departamentos-submenu');
+        departamentos.forEach(depto => {
+            const item = document.createElement('a');
+            item.href = depto.url;
+            item.className = 'submenu-item';
+            item.innerHTML = `
+                <i class="bi ${depto.icon}"></i>
+                <span>${depto.nombre}</span>
+            `;
+            submenuDepartamentos.appendChild(item);
+        });
+
+        // Generar submenu de reportes
+        const submenuReportes = document.getElementById('reportes-submenu');
+        reportes.forEach(reporte => {
+            const item = document.createElement('a');
+            item.href = reporte.url;
+            item.className = 'submenu-item';
+            item.innerHTML = `
+                <i class="bi ${reporte.icon}"></i>
+                <span>${reporte.nombre}</span>
+            `;
+            submenuReportes.appendChild(item);
+        });
+
+        // Cerrar submenus al hacer clic fuera
+        document.addEventListener('click', function(event) {
+            const menus = [
+                { menu: 'departamentos-menu', sub: 'departamentos-submenu' },
+                { menu: 'reportes-menu', sub: 'reportes-submenu' }
+            ];
+
+            menus.forEach(({ menu, sub }) => {
+                const menuElement = document.getElementById(menu);
+                const subElement = document.getElementById(sub);
+                
+                if (!menuElement.contains(event.target) && !subElement.contains(event.target)) {
+                    menuElement.classList.remove('open');
+                    subElement.classList.remove('open');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

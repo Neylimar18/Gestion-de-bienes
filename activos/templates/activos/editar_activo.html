@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SEMAT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #D02727;
+            --secondary-color: #f8f9fa;
+            --accent-color: #6c757d;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --dark-color: #343a40;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 260px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .logo-section {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: var(--primary-color);
+            border-radius: 10px;
+            margin-right: 10px;
+        }
+
+        .brand-name {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        .nav-section {
+            padding: 0 15px;
+            margin-bottom: 30px;
+        }
+
+        .nav-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            color: var(--dark-color);
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(208, 39, 39, 0.1);
+            color: var(--primary-color);
+        }
+
+        .nav-item.active {
+            background-color: rgba(208, 39, 39, 0.15);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background-color: rgba(248, 249, 250, 0.8);
+            border-radius: 8px;
+            margin: 5px 0 10px 0;
+        }
+
+        .submenu.open {
+            max-height: 500px;
+        }
+
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px 10px 45px;
+            color: var(--dark-color);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .submenu-item:hover {
+            background-color: rgba(208, 39, 39, 0.08);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-item.has-submenu::after {
+            content: "›";
+            margin-left: auto;
+            transition: transform 0.3s;
+            font-size: 1.2rem;
+        }
+
+        .nav-item.has-submenu.open::after {
+            transform: rotate(90deg);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .page-title {
+            font-weight: 700;
+            color: var(--dark-color);
+            margin: 0;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .stat-card.operativo {
+            border-left-color: var(--success-color);
+        }
+
+        .stat-card.danado {
+            border-left-color: var(--warning-color);
+        }
+
+        .stat-card.baja {
+            border-left-color: var(--danger-color);
+        }
+
+        .stat-title {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            color: var(--success-color);
+        }
+
+        .stat-change.negative {
+            color: var(--primary-color);
+        }
+
+        /* Charts */
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .chart-title {
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .chart-placeholder {
+            height: 300px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-color);
+            font-size: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 70px;
+            }
+            
+            .brand-name, .nav-title, .nav-item span, .submenu-item span {
+                display: none;
+            }
+            
+            .nav-item {
+                justify-content: center;
+                padding: 15px;
+            }
+            
+            .nav-item i {
+                margin-right: 0;
+                font-size: 1.4rem;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo-section d-flex align-items-center">
+                <div class="logo"></div>
+                <span class="brand-name">SEMAT</span>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">Navegación</div>
+                
+                <a href="#" class="nav-item active">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+                
+                <div class="nav-item has-submenu" id="departamentos-menu">
+                    <i class="bi bi-building"></i>
+                    <span>Departamentos</span>
+                </div>
+                <div class="submenu" id="departamentos-submenu">
+                    <!-- Los departamentos se cargarán aquí -->
+                </div>
+                
+                <a href="#" class="nav-item">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Reportes</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">Configuración</div>
+                <a href="#" class="nav-item">
+                    <i class="bi bi-gear"></i>
+                    <span>Ajustes</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1 class="page-title">Dashboard de Activos</h1>
+                <div class="user-menu">
+                    <span>Administrador</span>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total de Activos</div>
+                    <div class="stat-value">1,248</div>
+                    <div class="stat-change">Sistema de Gestión</div>
+                </div>
+                
+                <div class="stat-card operativo">
+                    <div class="stat-title">Activos Operativos</div>
+                    <div class="stat-value">968</div>
+                    <div class="stat-change">78% del total</div>
+                </div>
+                
+                <div class="stat-card danado">
+                    <div class="stat-title">Activos Dañados</div>
+                    <div class="stat-value">142</div>
+                    <div class="stat-change negative">11% del total</div>
+                </div>
+                
+                <div class="stat-card baja">
+                    <div class="stat-title">Activos de Baja</div>
+                    <div class="stat-value">138</div>
+                    <div class="stat-change negative">11% del total</div>
+                </div>
+            </div>
+            
+            <!-- Chart Section -->
+            <div class="chart-container">
+                <div class="chart-title">Distribución por Departamento</div>
+                <div class="chart-placeholder">
+                    Gráfico de activos por departamento
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Toggle submenu de departamentos
+        document.getElementById('departamentos-menu').addEventListener('click', function() {
+            this.classList.toggle('open');
+            document.getElementById('departamentos-submenu').classList.toggle('open');
+        });
+
+        // Datos de departamentos
+        const departamentos = [
+            { nombre: "Administración", url: "#", icon: "bi-folder2-open" },
+            { nombre: "Fiscalización", url: "#", icon: "bi-shield-check" },
+            { nombre: "Recaudación", url: "#", icon: "bi-cash-coin" },
+            { nombre: "Inmuebles", url: "#", icon: "bi-house-door" },
+            { nombre: "Gerencia Licores", url: "#", icon: "bi-cup-straw" },
+            { nombre: "Gerencia General", url: "#", icon: "bi-building" },
+            { nombre: "Jurídica", url: "#", icon: "bi-bank" },
+            { nombre: "Informática", url: "#", icon: "bi-pc-display" }
+        ];
+
+        // Generar submenu dinámico
+        const submenu = document.getElementById('departamentos-submenu');
+        departamentos.forEach(depto => {
+            const item = document.createElement('a');
+            item.href = depto.url;
+            item.className = 'submenu-item';
+            item.innerHTML = `
+                <i class="bi ${depto.icon}"></i>
+                <span>${depto.nombre}</span>
+            `;
+            submenu.appendChild(item);
+        });
+
+        // Cerrar submenu al hacer clic fuera
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('departamentos-menu');
+            const sub = document.getElementById('departamentos-submenu');
+            
+            if (!menu.contains(event.target) && !sub.contains(event.target)) {
+                menu.classList.remove('open');
+                sub.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

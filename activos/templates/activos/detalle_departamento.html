@@ -1,99 +1,136 @@
-{% extends 'base.html' %}
-{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Gestión de Activos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'activos/css/styless.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+</head>
 
-<div class="container mt-4">
-  {% if user.is_superuser %}
-    <div class="text-end mb-1">
-        <a href="{% url 'dashboard' %}" class="btn btn-outline-danger fw-semibold">
-            <i class="bi bi-speedometer2"></i> Volver al Dashboard
-        </a>
-         <a href="{% url 'exportar_activos_departamento' departamento %}" class="btn btn-success">
-  <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo-section d-flex align-items-center">
+                <div class="logo">
+                    <i class="bi bi-pc-display"></i>
+                </div>
+                <span class="brand-name">SEMAT</span>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">Navegación</div>
+
+
+                <a href="{% url 'activos_departamento' departamento %}" class="nav-item">
+                    <i class="bi bi-clipboard-data"></i>
+                    <span>Todos los Activos</span>
+                </a>
+
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">Configuración</div>
+                
+                <a href="#" class="nav-item">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">Sistema de Gestión de Activos</h1>
+                    <span class="department-badge">Departamento: {{ departamento }} </span>
+                </div>
+<div class="user-menu">
+    <span> {{ request.user.username }}</span>
+    <div class="user-avatar">
+        {{ request.user.username|slice:":2"|upper }}
+    </div>
+</div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card total">
+                    <div class="stat-title">Total Activos</div>
+                    <div class="stat-value">{{ total_activos }}</div>
+                    <div class="stat-change positive">
+                        <i class="bi bi-arrow-up"></i> Activos del departamento
+                    </div>
+                </div>
+
+                <div class="stat-card operational">
+                    <div class="stat-title">Operativos</div>
+                    <div class="stat-value">{{activos_operativos}}</div>
+                    <div class="stat-change positive">
+                        <i class="bi bi-arrow-up"></i> En perfecto Estado 
+                    </div>
+                </div>
+
+                <div class="stat-card damaged">
+                    <div class="stat-title">Dañados</div>
+                    <div class="stat-value">{{activos_danados}}</div>
+                    <div class="stat-change negative">
+                        <i class="bi bi-exclamation-triangle"></i> En estado Critico
+                    </div>
+                </div>
+
+              
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+             <a href="{% url 'crear_activo_departamento' departamento %}" class="action-card-link">
+                <div class="action-card">
+                    <div class="action-icon primary">
+                        <i class="bi bi-plus-lg"></i>
+                    </div>
+                    <div class="action-title">Agregar Activo</div>
+                    <div class="action-desc">Registrar nuevo equipo</div>
+                </div>
+            </a>
+
+               <a href="{% url 'exportar_activos_departamento' departamento %}" class="action-card-link">
+    <div class="action-card">
+        <div class="action-icon success">
+            <i class="bi bi-clipboard-check"></i>
+        </div>
+        <div class="action-title">Reporte EXCEL</div>
+        <div class="action-desc">Generar informe</div>
+    </div>
 </a>
 
 
-    </div>
-{% endif %}
+                <div class="action-card">
+                    <div class="action-icon primary">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+                    <div class="action-title">Reporte PDF</div>
+                    <div class="action-desc">Generar informe</div>
+                </div>
 
-  <h2 class="text-center mb-2 fw-bold">Departamento: {{ departamento }}</h2>
+                
+            </div>
 
-  <div class="row justify-content-center align-items-stretch g-3">
-    <!-- Gráfica -->
-    <div class="col-md-5">
-      <div class="card shadow-sm p-4 rounded-4 h-100 text-center">
-        <h5 class="fw-bold mb-3">Distribución de Activos</h5>
-        <canvas id="graficaActivos" style="max-height: 200px;"></canvas>
-        <div class="d-flex justify-content-center mt-3 gap-3">
-          <span class="text-primary fw-semibold">
-            <i class="bi bi-square-fill text-primary"></i> Operativos
-          </span>
-          <span class="text-danger fw-semibold">
-            <i class="bi bi-square-fill text-danger"></i> Dañados
-          </span>
+            </div>
         </div>
-      </div>
     </div>
 
-    <!-- Totales -->
-    <div class="col-md-5">
-      <div class="card shadow-sm p-4 rounded-4 h-100 text-center">
-        <!-- Total Activos -->
-        <div class="bg-primary text-white rounded-4 p-3 mb-3">
-          <h5 class="fw-bold mb-1">Total Activos</h5>
-          <h2 class="fw-bold mb-0">{{ total_activos }}</h2>
-        </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    
+</body>
+</html>
 
-   <!-- Activos Operativos / Dañados -->
-<div class="d-flex justify-content-between gap-3">
-  <!-- Operativos -->
-  <a href="{% url 'lista_activos' %}?depto={{ departamento }}&estado=activo" 
-     class="flex-fill border border-success rounded-4 p-3 text-center text-decoration-none"
-     style="min-height: 100px; transition: 0.3s;">
-    <h6 class="text-success fw-semibold mb-2">Operativos</h6>
-    <h3 class="fw-bold text-dark">{{ activos_operativos }}</h3>
-  </a>
 
-  <!-- Dañados -->
-  <a href="{% url 'lista_inactivos' %}?depto={{ departamento }}&estado=inactivo" 
-     class="flex-fill border border-danger rounded-4 p-3 text-center text-decoration-none"
-     style="min-height: 100px; transition: 0.3s;">
-    <h6 class="text-danger fw-semibold mb-2">Dañados</h6>
-    <h3 class="fw-bold text-dark">{{ activos_danados }}</h3>
-  </a>
-</div>
 
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Botón Registrar -->
-  <div class="text-center mt-4">
-    <a href="{% url 'crear_activo_departamento' departamento %}" class="btn btn-primary rounded-4 px-4 py-2 fw-semibold">
-      <i class="bi bi-plus-circle"></i> Registrar
-    </a>
-  </div>
-</div>
-
-<!-- Script de la gráfica -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  const ctx = document.getElementById('graficaActivos').getContext('2d');
-  new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: ['Operativos', 'Dañados'],
-      datasets: [{
-        data: [{{ activos_operativos }}, {{ activos_danados }}],
-        backgroundColor: ['#3b82f6', '#ef4444'],
-      }]
-    },
-    options: {
-      plugins: {
-        legend: { display: false }
-      }
-    }
-  });
-</script>
-
-{% endblock %}

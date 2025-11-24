@@ -1,19 +1,267 @@
-{% extends 'base.html' %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Activo - Sistema de Gestión</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'activos/css/styless.css' %}">
+</head>
 
-{% block content %}
-<div class="container mt-4">
-    <h2 class="text-center mb-4">Registrar Activo en {{ departamento }}</h2>
-
-    <div class="card shadow p-4">
-        <form method="POST">
-            {% csrf_token %}
-            {{ form.as_p }}
-
-            <div class="text-center mt-3">
-                <button type="submit" class="btn btn-primary px-4">Guardar</button>
-                <a href="{% url 'detalle_departamento' departamento=departamento %}" class="btn btn-secondary px-4">Cancelar</a>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo-section d-flex align-items-center">
+                <div class="logo" style="width: 50px; height: 50px; overflow: hidden; padding: 0;">
+                    <img src="{% static 'img/slider1.jpg' %}" 
+                         alt="logo" 
+                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                </div>
+                <span class="brand-name">SEMAT</span>
             </div>
-        </form>
+
+            <div class="nav-section">
+                <div class="nav-title">Navegación</div>
+                <a href="{% url 'detalle_departamento' departamento %}" class="nav-item">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="bi bi-clipboard-data"></i>
+                    <span>Todos los Activos</span>
+                </a>
+                <a href="#" class="nav-item active">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Registrar Activo</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">Configuración</div>
+                <a href="#" class="nav-item">
+                    <i class="bi bi-gear"></i>
+                    <span>Configuración</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">Sistema de Gestión de Activos</h1>
+                    <span class="department-badge">Departamento: {{ departamento }}</span>
+                </div>
+
+                <div class="user-menu">
+                    <span>Usuario: Admin</span>
+                    <div class="user-avatar">
+                        AD
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Container -->
+            <div class="form-container">
+                <div class="form-header">
+                    <div class="form-icon">
+                        <i class="bi bi-plus-lg"></i>
+                    </div>
+                    <h2 class="form-title">Registrar Nuevo Activo</h2>
+                    <p class="form-subtitle">Complete la información del activo para agregarlo al sistema</p>
+                </div>
+
+                <form method="POST" id="assetForm">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- CÓDIGO Y SERIAL -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="{{ form.codigo.id_for_label }}" class="form-label">
+                                <i class="bi bi-upc-scan"></i> Código
+                            </label>
+                            {{ form.codigo }}
+                            {% if form.codigo.errors %}
+                                <div class="text-danger small">{{ form.codigo.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Ingrese el código único del activo</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.serial.id_for_label }}" class="form-label">
+                                <i class="bi bi-tag"></i> Serial
+                            </label>
+                            {{ form.serial }}
+                            {% if form.serial.errors %}
+                                <div class="text-danger small">{{ form.serial.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Número de serie del equipo</div>
+                        </div>
+                    </div>
+
+                    <!-- CATEGORÍAS ANIDADAS -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="{{ form.categoria_principal.id_for_label }}" class="form-label">
+                                <i class="bi bi-diagram-3"></i> Categoría Principal
+                            </label>
+                            {{ form.categoria_principal }}
+                            {% if form.categoria_principal.errors %}
+                                <div class="text-danger small">{{ form.categoria_principal.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Seleccione la categoría principal</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.subcategoria.id_for_label }}" class="form-label">
+                                <i class="bi bi-diagram-2"></i> Subcategoría
+                            </label>
+                            {{ form.subcategoria }}
+                            {% if form.subcategoria.errors %}
+                                <div class="text-danger small">{{ form.subcategoria.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Seleccione el tipo específico</div>
+                        </div>
+                    </div>
+
+                    <!-- DESCRIPCIÓN -->
+                    <div class="form-group">
+                        <label for="{{ form.descripcion.id_for_label }}" class="form-label">
+                            <i class="bi bi-card-text"></i> Descripción Detallada
+                        </label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                            <div class="text-danger small">{{ form.descripcion.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Describa características específicas del equipo</div>
+                    </div>
+
+                    <!-- RESPONSABLE COMO TEXTO INPUT -->
+                    <div class="form-group">
+                        <label for="{{ form.responsable.id_for_label }}" class="form-label">
+                            <i class="bi bi-person"></i> Responsable
+                        </label>
+                        {{ form.responsable }}
+                        {% if form.responsable.errors %}
+                            <div class="text-danger small">{{ form.responsable.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Ingrese el nombre de la persona a cargo</div>
+                    </div>
+
+                    <input type="hidden" name="departamento" value="{{ departamento }}">
+
+                    <div class="additional-info">
+                        <h5 class="info-title">
+                            <i class="bi bi-info-circle"></i> Información Importante
+                        </h5>
+                        <p class="info-text">
+                            Complete ambos niveles de categorización para una mejor organización.
+                            Asegúrese de ingresar un código único para cada activo.
+                        </p>
+                    </div>
+
+                    <div class="form-actions">
+                        <a href="{% url 'detalle_departamento' departamento %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Activo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-</div>
-{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    const subcategoriasPorCategoria = {
+        equipo_informatico: [
+            ['Equipo Informatico', 'Equipo Informatico'],
+            ['pc_escritorio', 'PC de Escritorio'],
+            ['laptop', 'Laptop'],
+            ['tablet', 'Tablet'],
+            ['servidor', 'Servidor'],
+            ['impresora', 'Impresora'],
+            ['monitor', 'Monitor'],
+            ['teclado', 'Teclado'],
+            ['mouse', 'Mouse']
+        ],
+        mueble: [
+            ['Mueble', 'Mueble'],
+            ['escritorio', 'Escritorio'],
+            ['silla', 'Silla'],
+            ['archivador', 'Archivador'],
+            ['estanteria', 'Estantería'],
+            ['mesa', 'Mesa']
+        ],
+        equipo_especializado: [
+            ['Equipo Especializado', 'Equipo Especializado'],
+            ['scanner', 'Scanner'],
+            ['proyector', 'Proyector'],
+            ['telefono', 'Teléfono IP'],
+            ['switch', 'Switch de Red'],
+            ['router', 'Router']
+        ],
+        otro: [
+            ['otro_equipo', 'Otro Equipo'],
+            ['herramienta', 'Herramienta'],
+            ['material', 'Material de Oficina']
+        ]
+    };
+
+    function actualizarSubcategorias() {
+        const categoriaSelect = document.getElementById('categoria_principal');
+        const subcategoriaSelect = document.getElementById('subcategoria');
+
+        const categoria = categoriaSelect.value;
+        const valorActual = subcategoriaSelect.value;
+
+        subcategoriaSelect.innerHTML = '';
+
+        if (categoria && subcategoriasPorCategoria[categoria]) {
+            subcategoriasPorCategoria[categoria].forEach(([value, text]) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                subcategoriaSelect.appendChild(option);
+            });
+
+            if (valorActual && subcategoriasPorCategoria[categoria].some(item => item[0] === valorActual)) {
+                subcategoriaSelect.value = valorActual;
+            }
+        } else {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Seleccione una categoría principal primero';
+            subcategoriaSelect.appendChild(option);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const categoriaSelect = document.getElementById('categoria_principal');
+        const subcategoriaSelect = document.getElementById('subcategoria');
+
+        categoriaSelect.addEventListener('change', actualizarSubcategorias);
+        actualizarSubcategorias();
+    });
+</script>
+
+</body>
+</html>

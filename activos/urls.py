@@ -19,14 +19,16 @@ urlpatterns = [
     # Activos por departamento
     path('departamento/<str:departamento>/', views.detalle_departamento, name='detalle_departamento'),
     path('departamento/<str:departamento>/crear/', views.registrar_activo, name='crear_activo_departamento'),
+    path('activos/departamento/<str:departamento>/', views.activos_departamento, name='activos_departamento'),
+
 
     # Listas de activos
-    path('activos/', views.lista_activos, name='lista_activos'),
-    path('inactivos/', views.lista_inactivos, name='lista_inactivos'),
     path('editar/<int:id>/', views.editar_activo, name='editar_activo'),
     path('eliminar/<int:pk>/', views.eliminar_activo, name='eliminar_activo'),
-    path('restaurar/<int:id>/', views.restaurar_activo, name='restaurar_activo'),
     path('exportar-activos/', views.exportar_activos, name='exportar_activos'),
-   path('departamento/<str:departamento>/exportar_excel/', views.exportar_activos_departamento, name='exportar_activos_departamento'),
+    path('exportar-activos/<str:departamento>/', views.exportar_activos_departamento, name='exportar_activos_departamento'),
+    path('cambiar-clave/', views.simple_password_change, name='simple_password_change'),
+    path('activos/', views.lista_activos, name='lista_activos'),
+    path('exportar-pdf-activos/', views.exportar_pdf_activos, name='exportar_pdf_activos'),
 
-]
+    ]

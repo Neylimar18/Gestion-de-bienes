@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Activos - SEMAT</title>
+    <title>Activos de {{ departamento }} - SEMAT</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{% static "activos/css/styless.css" %}">
+    <link rel="stylesheet" href="{% static 'activos/css/styless.css' %}">
     <style>
         /* Estilos adicionales para el modal */
         .modal-custom {
@@ -85,7 +85,6 @@
             color: white;
         }
     </style>
-   
 </head>
 
 <body>
@@ -101,13 +100,10 @@
             <div class="nav-section">
                 <div class="nav-title">Navegación</div>
 
-                <a href="{% url 'dashboard' %}" class="nav-item">
+                <a href="{% url 'detalle_departamento' departamento %}" class="nav-item">
                     <i class="bi bi-speedometer2"></i>
                     <span>Dashboard</span>
                 </a>
-
-
-                
             </div>
 
             <div class="nav-section">
@@ -123,7 +119,7 @@
         <div class="main-content">
 
             <div class="header">
-                <h1 class="page-title">Lista de Activos</h1>
+                <h1 class="page-title">Activos del Departamento: {{ departamento }}</h1>
 
                 <div class="user-menu">
                     <span>{{ request.user.username }}</span>
@@ -133,69 +129,58 @@
                 </div>
             </div>
 
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-title">Total Activos</div>
-                    <div class="stat-value">{{ activos.count }}</div>
-                    <div class="stat-change">Activos activos en sistema</div>
-                </div>
-            </div>
 
             <!-- Filters -->
             <div class="filters-container">
                 <h5 class="filter-title">Filtros</h5>
-                <form method="get" class="row g-3">
-                    <div class="col-md-4">
-                        <label for="depto" class="form-label">Departamento</label>
-                        <select name="depto" id="depto" class="form-select">
-                            <option value="">Todos los departamentos</option>
-                            <option value="Administración y Finanzas" {% if departamento == "Administración y Finanzas" %}selected{% endif %}>Administración y Finanzas</option>
-                            <option value="Fiscalización" {% if departamento == "Fiscalización" %}selected{% endif %}>Fiscalización</option>
-                            <option value="Recaudación" {% if departamento == "Recaudación" %}selected{% endif %}>Recaudación</option>
-                            <option value="Inmuebles Urbanos" {% if departamento == "Inmuebles Urbanos" %}selected{% endif %}>Inmuebles Urbanos</option>
-                            <option value="Gerencia de Licores" {% if departamento == "Gerencia de Licores" %}selected{% endif %}>Gerencia de Licores</option>
-                            <option value="Gerencia General" {% if departamento == "Gerencia General" %}selected{% endif %}>Gerencia General</option>
-                            <option value="Jurídica" {% if departamento == "Jurídica" %}selected{% endif %}>Jurídica</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="estado" class="form-label">Estado</label>
-                        <select name="estado" id="estado" class="form-select">
-                            <option value="">Todos los estados</option>
-                            <option value="operativo" {% if estado == "operativo" %}selected{% endif %}>Operativos</option>
-                            <option value="dañado" {% if estado == "dañado" %}selected{% endif %}>Dañados</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary me-2">
-                            <i class="bi bi-funnel"></i> Filtrar
-                        </button>
-                        <a href="{% url 'lista_activos' %}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-clockwise"></i> Limpiar
-                        </a>
-                    </div>
-                </form>
+               <form method="get" class="row g-3">
+
+    <!-- FILTRO POR ESTADO -->
+    <div class="col-md-4">
+        <label for="estado" class="form-label">Estado</label>
+        <select name="estado" id="estado" class="form-select">
+            <option value="">Todos los estados</option>
+            <option value="operativo" {% if estado == "operativo" %}selected{% endif %}>Operativos</option>
+            <option value="dañado" {% if estado == "dañado" %}selected{% endif %}>Dañados</option>
+        </select>
+    </div>
+
+    <!-- BUSCADOR -->
+    <div class="col-md-4">
+        <label class="form-label">Buscar</label>
+        <div class="input-group">
+            <input 
+                type="text" 
+                class="form-control" 
+                name="buscar" 
+                placeholder="Buscar activo..."
+                value="{{ request.GET.buscar }}">
+            <button class="btn btn-primary" type="submit">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- BOTONES -->
+    <div class="col-md-4 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary me-2">
+            <i class="bi bi-funnel"></i> Filtrar
+        </button>
+    
+    </div>
+
+</form>
+
             </div>
 
             <!-- TABLE -->
             <div class="table-container">
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3 class="table-title">
-                        {% if estado == "dañado" %}
-                            Activos Dañados
-                        {% elif estado == "operativo" %}
-                            Activos Operativos
-                        {% else %}
-                            Todos los Activos
-                        {% endif %}
-                    </h3>
-                    <div class="btn-group">
-                        <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
-                            <i class="bi bi-arrow-left"></i> Volver al Dashboard
-                        </a>
-                    </div>
+                    <h3 class="table-title">Activos de {{ departamento }}</h3>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Volver al Dashboard
+                    </a>
                 </div>
 
                 {% if activos %}
@@ -205,7 +190,6 @@
                             <tr>
                                 <th>Serial</th>
                                 <th>Descripción</th>
-                                <th>Departamento</th>
                                 <th>Estado</th>
                                 <th>Opciones</th>
                             </tr>
@@ -215,7 +199,6 @@
                             <tr>
                                 <td><strong>{{ activo.serial|default:activo.id }}</strong></td>
                                 <td><strong>{{ activo.nombre }}</strong></td>
-                                <td><strong>{{ activo.departamento }}</strong></td>
                                 <td>
                                     {% if activo.condicion == "dañado" %}
                                         <span class="status-badge status-warning">Dañado</span>
@@ -243,6 +226,8 @@
                                 {% endif %}
                              </div>
                             </td>
+
+                                
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -253,20 +238,12 @@
                 <div class="text-center py-5">
                     <i class="bi bi-inbox display-1 text-muted"></i>
                     <h4 class="text-muted mt-3">No se encontraron activos</h4>
-                    <p class="text-muted">
-                        {% if departamento or estado %}
-                            No hay activos que coincidan con los filtros aplicados.
-                        {% else %}
-                            No hay activos registrados en el sistema.
-                        {% endif %}
-                    </p>
-                    <a href="{% url 'lista_activos' %}" class="btn btn-primary mt-3">
-                        <i class="bi bi-arrow-clockwise"></i> Ver todos los activos
-                    </a>
+                    <p class="text-muted">No hay activos registrados en este departamento.</p>
                 </div>
                 {% endif %}
             </div>
         </div>
+
     </div>
 
     <!-- Modal de Confirmación de Eliminación -->
@@ -310,7 +287,9 @@
         </div>
     </div>
 
+    <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
         // Configurar el modal para mostrar la información del activo correcto
         document.addEventListener('DOMContentLoaded', function() {
