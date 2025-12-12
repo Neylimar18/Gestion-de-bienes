@@ -13,9 +13,10 @@
     <div class="dashboard-container">
         <!-- Sidebar -->
         <div class="sidebar">
-            <div class="logo-section d-flex align-items-center">
-                <div class="logo"></div>
-                <span class="brand-name">SEMAT</span>
+           <div class="logo-section d-flex align-items-center">
+                <div class="logo">
+                    <img src="{% static 'activos/img/slider1.jpg' %}" alt="logo"   height="70">
+                </div>
             </div>
             
             <div class="nav-section">
@@ -60,8 +61,53 @@
             <div class="header">
                 <h1 class="page-title">Dashboard de Activos</h1>
                 <div class="user-menu">
-                    <span>Administrador</span>
-                    <div class="user-avatar">A</div>
+                    <!-- 🔹 AQUÍ VA EL DROPDOWN DEL USUARIO - REEMPLAZA LO QUE HAY -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center" 
+                                type="button" id="userDropdown" 
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="user-avatar me-2">
+                                {% if user.first_name %}
+                                    {{ user.first_name|first|upper }}
+                                {% else %}
+                                    {{ user.username|first|upper }}
+                                {% endif %}
+                            </div>
+                            <div class="d-flex flex-column text-start">
+                                <span class="fw-bold">
+                                    {% if user.first_name %}
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
+                                </span>
+                                <small class="text-muted">
+                                    {% if user.is_superuser %}
+                                        Administrador
+                                    {% elif user.departamento %}
+                                        {{ user.departamento }}
+                                    {% else %}
+                                        Usuario
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            
+                            <li>
+                                <a class="dropdown-item" href="{% url 'simple_password_change' %}">
+                                    <i class="bi bi-key me-2"></i> Cambiar Contraseña
+                                </a>
+                            </li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             
@@ -81,7 +127,7 @@
                 <div class="stat-card baja">
                     <div class="stat-title">Activos Dañados</div>
                     <div class="stat-value">{{activos_danados}}</div>
-                                </div>
+                </div>
             </div>
             
             <!-- Chart Section -->
@@ -91,8 +137,6 @@
                     Gráfico de activos por departamento
                 </div>
             </div>
-
-        
         </div>
     </div>
 
