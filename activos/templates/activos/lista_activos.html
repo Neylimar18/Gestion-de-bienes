@@ -84,6 +84,17 @@
             background-color: #e63946;
             color: white;
         }
+
+        .btn-restaurar-modal {
+            background-color: rgb(255, 255, 255);
+            color: #17c711;
+            border: 1px solid rgba(22, 177, 69, 0.2);
+        }
+        
+        .btn-restaurar-modal:hover {
+            background-color: #17c711;
+            color: white;
+        }
     </style>
    
 </head>
@@ -133,14 +144,7 @@
                 </div>
             </div>
 
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-title">Total Activos</div>
-                    <div class="stat-value">{{ activos.count }}</div>
-                    <div class="stat-change">Activos activos en sistema</div>
-                </div>
-            </div>
+            
 
             <!-- Filters -->
             <div class="filters-container">
@@ -191,11 +195,7 @@
                             Todos los Activos
                         {% endif %}
                     </h3>
-                    <div class="btn-group">
-                        <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
-                            <i class="bi bi-arrow-left"></i> Volver al Dashboard
-                        </a>
-                    </div>
+                    
                 </div>
 
                 {% if activos %}
@@ -203,6 +203,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th>Codigo</th>
                                 <th>Serial</th>
                                 <th>Descripción</th>
                                 <th>Departamento</th>
@@ -213,8 +214,9 @@
                         <tbody>
                             {% for activo in activos %}
                             <tr>
+                                <td><strong>{{ activo.codigo|default:activo.id }}</strong></td>
                                 <td><strong>{{ activo.serial|default:activo.id }}</strong></td>
-                                <td><strong>{{ activo.nombre }}</strong></td>
+                                <td><strong>{{ activo.descripcion }}</strong></td>
                                 <td><strong>{{ activo.departamento }}</strong></td>
                                 <td>
                                     {% if activo.condicion == "dañado" %}
@@ -238,8 +240,19 @@
                                        data-activo-nombre="{{ activo.nombre }}">
                                  <i class="bi bi-trash"></i> Eliminar
                               </button>
+                              <a href="{% url 'transferir_activo' activo.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-exchange-alt"></i> Transferir
+    </a>
+
                                {% else %}
-                                   <span class="text-muted">Sin opciones</span>
+                                <button type="button" class="btn btn-restaurar-modal btn-action" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#restaurarModal"
+                                        data-activo-id="{{ activo.id }}"
+                                        data-activo-serial="{{ activo.serial|default:activo.id }}"
+                                        data-activo-codigo="{{ activo.codigo }}">
+                                    <i class="bi bi-arrow-clockwise"></i> Restaurar
+                                </button>
                                 {% endif %}
                              </div>
                             </td>
@@ -268,6 +281,29 @@
             </div>
         </div>
     </div>
+
+<!-- Modal de Restauración -->
+<div class="modal fade" id="restaurarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Restaurar Activo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de restaurar el activo <strong id="activoCodigoDisplay"></strong> (Serial: <span id="activoSerialDisplay"></span>)?</p>
+                <p class="text-muted">El activo cambiará de estado "Dañado" a "Operativo".</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formRestaurarActivo" method="POST" action="{% url 'restaurar_activo' 0 %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">Confirmar Restauración</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Modal de Confirmación de Eliminación -->
     <div class="modal fade modal-custom" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -339,5 +375,56 @@
             });
         });
     </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtener referencia al modal
+    const restaurarModal = document.getElementById('restaurarModal');
+    
+    // Evento que se dispara cuando el modal se va a mostrar
+    restaurarModal.addEventListener('show.bs.modal', function(event) {
+        // El botón que disparó el modal
+        const button = event.relatedTarget;
+        
+        // Extraer datos del botón
+        const activoId = button.getAttribute('data-activo-id');
+        const activoSerial = button.getAttribute('data-activo-serial');
+        const activoCodigo = button.getAttribute('data-activo-codigo');
+        
+        console.log('Datos del activo:', {
+            id: activoId,
+            serial: activoSerial,
+            codigo: activoCodigo
+        });
+        
+        // Actualizar el contenido del modal
+        const modalCodigo = document.getElementById('activoCodigoDisplay');
+        const modalSerial = document.getElementById('activoSerialDisplay');
+        
+        if (modalCodigo) modalCodigo.textContent = activoCodigo || 'N/A';
+        if (modalSerial) modalSerial.textContent = activoSerial || 'N/A';
+        
+        // Actualizar la URL del formulario
+        const form = document.getElementById('formRestaurarActivo');
+        if (form) {
+            // Reemplazar el 0 en la URL por el ID real
+            const currentAction = form.getAttribute('action');
+            const newAction = currentAction.replace('/0/', `/${activoId}/`);
+            form.setAttribute('action', newAction);
+            
+            console.log('URL del formulario actualizada:', newAction);
+        }
+    });
+    
+    // Opcional: Resetear la URL cuando se cierra el modal
+    restaurarModal.addEventListener('hidden.bs.modal', function() {
+        const form = document.getElementById('formRestaurarActivo');
+        if (form) {
+            // Resetear a la URL original con 0
+            const originalAction = "{% url 'restaurar_activo' 0 %}";
+            form.setAttribute('action', originalAction);
+        }
+    });
+});
+</script>
 </body>
 </html>
