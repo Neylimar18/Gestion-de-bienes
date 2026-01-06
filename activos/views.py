@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import Activo, DEPARTAMENTOS
+from .models import Activo, DEPARTAMENTOS, TransferenciaActivo
 from django.db.models import Q, Count
 from .forms import ActivoForm
 from django import forms
@@ -30,6 +30,29 @@ from django.http import HttpResponse
 import os
 from datetime import datetime
 from .models import Activo
+from activos import models
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib import messages
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.utils import timezone
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+import json
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmView
+from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
+
 
 
 # 📍login 
@@ -48,21 +71,31 @@ def login_view(request):
 
     return render(request, 'activos/login.html')
 
+@login_required
 # 📍 Registrar activo
 def registrar_activo(request, departamento=None):
     if request.method == 'POST':
         form = ActivoForm(request.POST)
         if form.is_valid():
-            activo = form.save(departamento=departamento)
+            # Guarda el formulario pero NO establezcas departamento aquí
+            activo = form.save(commit=False)
+            
+            # Asegúrate de asignar el departamento
+            if departamento:
+                activo.departamento = departamento
+                activo.save()
+            
             return redirect('detalle_departamento', departamento=activo.departamento)
     else:
-        form = ActivoForm()
+
+        form = ActivoForm(initial={'activo': False})
 
     return render(request, 'activos/registrar_activo.html', {
         'form': form, 
         'departamento': departamento
     })
 
+@login_required
 # 📍 Editar activo
 def editar_activo(request, pk):
     activo = get_object_or_404(Activo, pk=pk)
@@ -78,6 +111,8 @@ def editar_activo(request, pk):
 
     return render(request, 'activos/editar_activo.html', {'form': form, 'departamento': departamento})
 
+
+@login_required
 #📍 dash
 def dashboard(request):
     if not request.user.is_authenticated:
@@ -106,7 +141,7 @@ def dashboard(request):
     total_activos = activos.count()
     activos_operativos = activos.filter(condicion="operativo").count()  # minúscula
     activos_danados = activos.filter(condicion="dañado").count()        # minúscula
-    activos_baja = activos.filter(activo=False).count()
+    
 
     # Agrupar por departamento (solo para admin)
     if request.user.is_superuser:
@@ -126,13 +161,13 @@ def dashboard(request):
         "total_activos": total_activos,
         "activos_operativos": activos_operativos,
         "activos_danados": activos_danados,
-        "activos_baja": activos_baja,
-        "activos_por_departamento": activos_por_departamento,
+             "activos_por_departamento": activos_por_departamento,
         "labels": [d["departamento"] for d in activos_por_departamento],
         "data": [d["total"] for d in activos_por_departamento],
     }
     return render(request, "activos/dashboard.html", context)
 
+@login_required
 #📍 dash departamento
 def detalle_departamento(request, departamento):
     # Filtrar los activos solo del departamento seleccionado (por nombre)
@@ -155,12 +190,14 @@ def detalle_departamento(request, departamento):
 
     return render(request, 'activos/detalle_departamento.html', context)
 
+@login_required
 # 📍 Cerrar seccion
 def logout_view(request):
 
     logout(request)
     return redirect('login')
 
+@login_required
 # 📍 exportar excel todos 
 def exportar_activos(request):
    # Crear el libro y hoja
@@ -246,6 +283,7 @@ def exportar_activos(request):
     wb.save(response)
     return response
 
+@login_required
 #📍 exportar excel por departamento 
 def exportar_activos_departamento(request, departamento):
     wb = Workbook()
@@ -322,7 +360,7 @@ def exportar_activos_departamento(request, departamento):
     wb.save(response)
     return response
 
-
+@login_required
 # 📍 Lista de activos (operativos o dañados)
 def lista_activos(request):
     departamento = request.GET.get("depto")
@@ -330,7 +368,10 @@ def lista_activos(request):
 
     # Iniciar con todos los activos (activos=True)
     activos = Activo.objects.filter(activo=True)
-
+    total_activos = activos.count()
+    activos_operativos = activos.filter(condicion="operativo").count()  # minúscula
+    activos_danados = activos.filter(condicion="dañado").count()        # minúscula
+  
     if departamento:
         activos = activos.filter(departamento=departamento)
 
@@ -341,6 +382,8 @@ def lista_activos(request):
         elif estado == "operativo":
             activos = activos.filter(condicion="operativo")  # minúscula
 
+    
+
     context = {
         'activos': activos,
         'departamento': departamento,
@@ -348,26 +391,29 @@ def lista_activos(request):
     }
     return render(request, 'activos/lista_activos.html', context)
 
-
-# 📍 Eliminar activo 
+@login_required
 def eliminar_activo(request, pk):
     activo = get_object_or_404(Activo, pk=pk)
     departamento = activo.departamento
 
     if request.method == "POST":
-        # 🔹 Eliminación lógica - CORRECCIÓN: usar minúsculas
-        activo.condicion = 'dañado'      # CORREGIDO: minúscula
+        activo.condicion = 'dañado'      
         activo.activo = True       
         activo.save()
-
-        messages.success(request, f'Activo {activo.codigo} marcado como dañado')
-        return redirect(reverse('detalle_departamento', args=[departamento]))
+        
+        
+        # Redirección según usuario
+        if request.user.is_superuser:
+            return redirect('lista_activos')
+        else:
+            return redirect(reverse('activos_departamento', args=[departamento]))
 
     return render(request, 'activos/eliminar_activo.html', {
         'activo': activo,
         'departamento': departamento
     })
 
+@login_required
 #📍 Lista de activos (operativos o dañados) DEPARTAMENTOS
 def activos_departamento(request, departamento):
     activos = Activo.objects.filter(departamento=departamento, activo=True)
@@ -396,6 +442,7 @@ def activos_departamento(request, departamento):
 
     return render(request, "activos/activos_departamento.html", context)
 
+@login_required
 #📍 exportar pdf todos
 def exportar_pdf_activos(request):
     response = HttpResponse(content_type='application/pdf')
@@ -524,6 +571,7 @@ def exportar_pdf_activos(request):
 
     return response
 
+@login_required
 def exportar_pdf_activos_departamento(request, departamento):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="Inventario_{departamento}.pdf"'
@@ -753,19 +801,11 @@ def filter_by_user_permission(queryset, user):
     
     return queryset.none()
 
-from django.core.mail import send_mail
-from django.conf import settings
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmView
-from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
 
+@login_required
 # 📍 Cambiar contraseña (cuando ya estás logueado)
 def simple_password_change(request):
-    """
-    Vista para cambiar contraseña cuando el usuario está logueado.
-    """
+   
     if not request.user.is_authenticated:
         messages.error(request, "Debes iniciar sesión primero")
         return redirect('login')
@@ -807,7 +847,6 @@ def simple_password_change(request):
                 # Mantener la sesión activa
                 update_session_auth_hash(request, request.user)
                 
-                messages.success(request, "¡Contraseña cambiada exitosamente!")
                 
                 # Redirigir según el tipo de usuario
                 if request.user.is_superuser:
@@ -826,9 +865,7 @@ def simple_password_change(request):
 
 # 📍 Solicitar recuperación de contraseña (olvidé mi contraseña)
 def password_reset_request(request):
-    """
-    Vista para solicitar recuperación de contraseña.
-    """
+   
     if request.user.is_authenticated:
         return redirect('dashboard')
     
@@ -887,9 +924,6 @@ def password_reset_request(request):
                 print(f"   Enlace: {reset_url}")
                 print("-" * 80)
                 
-                messages.success(request, 
-                    f"Se ha enviado un enlace de recuperación a {user.email}. " +
-                    "Revisa tu bandeja de entrada (y spam).")
                 messages.info(request, 
                     f"Para desarrollo: El enlace es: {reset_url}")
                 
@@ -953,3 +987,337 @@ def password_reset_confirm(request, uidb64=None, token=None):
         messages.error(request, 
             "El enlace de recuperación no es válido o ha expirado.")
         return redirect('password_reset_request')
+    
+@login_required
+def restaurar_activo(request, activo_id):
+    print(f"DEBUG: Entrando a restaurar_activo con ID: {activo_id}")
+    print(f"DEBUG: Método: {request.method}")
+    
+    if request.method == 'POST':
+        activo = get_object_or_404(Activo, id=activo_id)
+        
+        if activo.condicion.lower() == 'dañado':  
+            activo.condicion = 'operativo'  
+            activo.save()
+        else:
+            print(f"DEBUG: Condición actual es '{activo.condicion}', no 'dañado'")
+            messages.warning(request, f'No se puede restaurar. El activo está {activo.condicion}.')
+    
+    return redirect('lista_activos')
+
+
+@login_required
+@permission_required('activos.change_activo', raise_exception=True)
+def transferir_activo(request, activo_id=None):
+    """Vista para transferir un activo a otro departamento"""
+    
+    departamentos = [
+        "Fiscalización",
+        "Recaudación", 
+        "Inmuebles Urbanos",
+        "Gerencia de Licores",
+        "Gerencia General",
+        "Jurídica",
+        "Informatica",
+        "Administración y Finanzas"
+        "Calidad de Gestion",
+        "GATD"
+        
+    ]
+    
+    if request.method == 'GET' and activo_id:
+        activo = get_object_or_404(Activo, id=activo_id, activo=True)
+        context = {
+            'activo': activo,
+            'departamentos': [d for d in departamentos if d != activo.departamento],
+            'es_admin': request.user.is_superuser,
+        }
+        return render(request, 'activos/transferir_activo.html', context)
+    
+    elif request.method == 'POST':
+        try:
+            data = request.POST
+            activo_id = data.get('activo_id')
+            activo = get_object_or_404(Activo, id=activo_id, activo=True)
+            
+            # Guardar departamento anterior antes de cambiar
+            departamento_anterior = activo.departamento
+            departamento_nuevo = data.get('departamento_destino')
+            
+            if departamento_anterior == departamento_nuevo:
+                messages.warning(request, 'El departamento destino debe ser diferente al actual.')
+                return redirect('transferir_activo', activo_id=activo_id)
+            
+            # Actualizar el activo
+            activo.departamento_anterior = departamento_anterior
+            activo.departamento = departamento_nuevo
+            activo.fecha_transferencia = timezone.now()
+            activo.transferido_por = data.get('transferido_por', '').strip()
+            activo.recibido_por = data.get('recibido_por', '').strip()
+            activo.cargo_entrega = data.get('cargo_entrega', '').strip()
+            activo.cargo_recibe = data.get('cargo_recibe', '').strip()
+            activo.save()
+            
+            # Crear registro en historial de transferencias
+            transferencia = TransferenciaActivo.objects.create(
+                activo=activo,
+                departamento_origen=departamento_anterior,
+                departamento_destino=departamento_nuevo,
+                transferido_por=data.get('transferido_por', '').strip(),
+                recibido_por=data.get('recibido_por', '').strip(),
+                cargo_entrega=data.get('cargo_entrega', '').strip(),
+                cargo_recibe=data.get('cargo_recibe', '').strip(),
+                observaciones=data.get('observaciones', '').strip(),
+                usuario_registro=request.user.username
+            )
+            
+            messages.success(request, f'✅ Activo "{activo.codigo}" transferido exitosamente.')
+            
+            # Redirigir a la vista de generación de PDF
+            return redirect('generar_acta_transferencia', transferencia_id=transferencia.id)
+            
+        except Exception as e:
+            messages.error(request, f'❌ Error al transferir el activo: {str(e)}')
+            return redirect('dashboard')
+    
+    # Si no es GET con ID ni POST, mostrar lista de activos para transferir
+    if request.user.is_superuser:
+        activos = Activo.objects.filter(activo=True)
+    else:
+        activos = Activo.objects.filter(
+            activo=True,
+            departamento=request.user.departamento
+        )
+    
+    context = {
+        'activos': activos,
+        'departamentos': departamentos,
+        'es_admin': request.user.is_superuser,
+    }
+    return render(request, 'activos/lista_transferir.html', context)
+
+
+@login_required
+def generar_acta_transferencia(request, transferencia_id):
+    """Generar PDF del acta de transferencia"""
+    transferencia = get_object_or_404(TransferenciaActivo, id=transferencia_id)
+    activo = transferencia.activo
+    
+    # Crear respuesta HTTP con PDF
+    response = HttpResponse(content_type='application/pdf')
+    filename = f"acta_transferencia_{activo.id}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    # Crear el documento PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    elements = []
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    
+    estilo_centrado = ParagraphStyle(
+        name='Centrado',
+        parent=styles['Normal'],
+        alignment=TA_CENTER,
+        fontSize=10,
+        fontName='Times-Roman'
+    )
+
+    # Cargar logos
+    logo1_path = os.path.join(settings.BASE_DIR, "activos/static/activos/img/logo1.jpg")
+    logo2_path = os.path.join(settings.BASE_DIR, "activos/static/activos/img/slider1.jpg")
+
+    logo1 = Image(logo1_path, width=70, height=70) if os.path.exists(logo1_path) else Paragraph("LOGO 1", estilo_centrado)
+    logo2 = Image(logo2_path, width=70, height=70) if os.path.exists(logo2_path) else Paragraph("LOGO 2", estilo_centrado)
+
+    texto_encabezado = Paragraph("""
+        <b>República Bolivariana de Venezuela</b><br/>
+        <b>Estado Lara</b><br/>
+        <b>Alcaldía Bolivariana del Municipio Iribarren</b><br/>
+        <b>Servicio Municipal de Administración Tributaria</b><br/>
+        <b>SEMAT</b>
+    """, estilo_centrado)
+
+    encabezado = Table([[logo1, texto_encabezado, logo2]], colWidths=[80, 400, 80])
+    encabezado.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+        ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+    ]))
+    elements.append(encabezado)
+    elements.append(Spacer(1, 20))
+
+    # Estilo personalizado para título
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=14,
+        spaceAfter=20,
+        alignment=1  # Centrado
+    )
+    
+    # Estilo para subtítulos
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Heading2'],
+        fontSize=12,
+        spaceAfter=10,
+        fontName='Times-Roman',
+        textDecoration='underline'
+    )
+    
+    # Estilo para texto normal
+    normal_style = ParagraphStyle(
+        'Normal',
+        parent=styles['Normal'],
+        fontSize=12,
+        spaceAfter=6,
+        fontName='Times-Roman'
+    )
+    
+    # Título del documento
+    elements.append(Paragraph("<b>ACTA DE ENTREGA - TRANSFERENCIA DE BIENES</b>", title_style))
+    elements.append(Spacer(1, 10))
+    
+
+     # OBTENER FECHA CON MES EN ESPAÑOL
+    fecha_hora_local = timezone.localtime(timezone.now())
+    
+    # Diccionario de traducción de meses
+    meses_espanol = {
+        'January': 'Enero',
+        'February': 'Febrero',
+        'March': 'Marzo',
+        'April': 'Abril',
+        'May': 'Mayo',
+        'June': 'Junio',
+        'July': 'Julio',
+        'August': 'Agosto',
+        'September': 'Septiembre',
+        'October': 'Octubre',
+        'November': 'Noviembre',
+        'December': 'Diciembre'
+    }
+    
+    # Formatear y traducir
+    mes_ingles = fecha_hora_local.strftime('%B')
+    dia = fecha_hora_local.strftime('%d')
+    anio = fecha_hora_local.strftime('%Y')
+    hora = fecha_hora_local.strftime('%I:%M %p')
+    mes_espanol = meses_espanol.get(mes_ingles, mes_ingles)
+    
+    # Construir la cadena final
+    hora_fecha = f"{hora} del dia {dia} de {mes_espanol} del {anio}  "
+
+    # Encabezado con fecha y hora
+  
+    descripcion = f"""
+    Siendo las {hora_fecha} se levanta la presente acta para dejar constancia de la transferencia del Bien Público 
+    del departamento {transferencia.departamento_origen} al departamento 
+    {transferencia.departamento_destino}, con las siguientes características:
+    """
+    elements.append(Paragraph(descripcion, normal_style))
+    elements.append(Spacer(1, 20))
+    
+    # Tabla con información del activo
+    activo_data = [
+    ['CÓDIGO', 'SERIAL', 'DESCRIPCIÓN DEL BIEN', 'CONDICIÓN DEL BIEN'],
+    [
+        activo.codigo,
+        activo.serial or 'N/A',
+        activo.descripcion or 'Sin descripción adicional',
+        activo.condicion.upper()
+    ]
+]
+
+    # Crear tabla con 4 columnas
+    # Ajusta los anchos según lo que necesites
+    tabla_activo = Table(activo_data, colWidths=[1*inch, 1.5*inch, 2*inch, 2*inch])
+    tabla_activo.setStyle(TableStyle([
+    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ('ALIGN', (2, 1), (2, 1), 'LEFT'),  # Alinear descripción a la izquierda
+    ('FONTNAME', (0, 0), (-1, 0), 'Times-Roman'),
+    ('FONTSIZE', (0, 0), (-1, 0), 10),
+    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ('WORDWRAP', (0, 0), (-1, -1), True),  # Permitir ajuste de texto
+]))
+    
+    
+    
+    elements.append(tabla_activo)
+    elements.append(Spacer(1, 20))
+    
+    # Observaciones si existen
+    if transferencia.observaciones:
+        elements.append(Paragraph("<b>Observaciones:</b>", normal_style))
+        elements.append(Paragraph(transferencia.observaciones, normal_style))
+        elements.append(Spacer(1, 20))
+    
+    # Texto de constancia
+    constancia = """
+    Dejando constancia de lo antes expuesto y agradeciendo la atención prestada, se procede a la firma del presente documento.
+    """
+    elements.append(Paragraph(constancia, normal_style))
+    elements.append(Spacer(1, 20))
+    
+    # Tabla de firmas
+   # ALTERNATIVA: Tabla de firmas con múltiples filas
+    firmas_data = [
+    ['ENTREGA CONFORME:', 'RECIBE CONFORME:'],
+    [f"Nombre y Apellido:{transferencia.transferido_por}", 
+     f"Nombre y Apellido:{transferencia.recibido_por}"],
+    [f"Cargo:{transferencia.cargo_entrega}", 
+     f"Cargo:{transferencia.cargo_recibe}"],
+    [f"Departamento:{transferencia.departamento_origen}", 
+     f"Departamento:{transferencia.departamento_destino}"],
+    ["Firma:___________________________", 
+     "Firma:___________________________"]
+]
+
+    tabla_firmas = Table(firmas_data, colWidths=[3*inch, 3*inch])
+    tabla_firmas.setStyle(TableStyle([
+    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ('FONTNAME', (0, 0), (-1, 0), 'Times-Roman'),
+    ('FONTSIZE', (0, 0), (-1, 0), 10),
+    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+    ('SPAN', (0, 0), (0, 0)),  # Si quieres que los títulos ocupen espacio adicional
+    ('SPAN', (1, 0), (1, 0)),
+]))
+    
+    elements.append(tabla_firmas)
+    elements.append(Spacer(1, 40))
+    
+    # Nota final
+    nota = """
+    <b>NOTA:</b> Dicho documento debe ser remitido al área de Bienes Muebles para la notificación 
+    correspondiente del movimiento del bien y su registro en el sistema de gestión de activos.
+    """
+    elements.append(Paragraph(nota, normal_style))
+    
+    # Construir PDF
+    doc.build(elements)
+    
+    # Marcar como generado
+    transferencia.pdf_generado = True
+    transferencia.save()
+    
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+    
+    return response
+
+
+
+
