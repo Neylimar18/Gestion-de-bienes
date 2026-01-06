@@ -151,7 +151,24 @@
                         <div class="form-text">Describa características específicas del equipo</div>
                     </div>
 
-                    <!-- RESPONSABLE COMO TEXTO INPUT -->
+                     <div class="form-group">
+                        <label for="{{ form.condicion.id_for_label }}" class="form-label">
+                            <i class="bi bi-clipboard-check"></i> Condición
+                        </label>
+                        <select name="condicion" id="id_condicion" class="form-control form-select">
+                            <option value="operativo" {% if form.condicion.value == 'operativo' %}selected{% endif %}>
+                                <i class="bi bi-check-circle-fill text-success me-1"></i> Operativo
+                            </option>
+                            <option value="dañado" {% if form.condicion.value == 'dañado' %}selected{% endif %}>
+                                <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Dañado
+                            </option>
+                        </select>
+                            {% if form.condicion.errors %}
+                                <div class="text-danger small">{{ form.condicion.errors }}</div>
+                            {% endif %}
+                                <div class="form-text">Estado actual del activo</div>
+                    </div>
+                        <!-- RESPONSABLE -->
                     <div class="form-group">
                         <label for="{{ form.responsable.id_for_label }}" class="form-label">
                             <i class="bi bi-person"></i> Responsable
@@ -162,6 +179,11 @@
                         {% endif %}
                         <div class="form-text">Ingrese el nombre de la persona a cargo</div>
                     </div>
+</div>
+
+                   
+
+                    
 
                     <input type="hidden" name="departamento" value="{{ departamento }}">
 
