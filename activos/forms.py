@@ -5,7 +5,9 @@ class ActivoForm(forms.ModelForm):
     
     class Meta:
         model = Activo
-        fields = ['categoria_principal', 'subcategoria', 'codigo', 'serial', 'descripcion', 'responsable']
+        fields = ['categoria_principal', 'subcategoria', 'codigo', 'serial', 
+                 'descripcion', 'responsable', 'condicion']  # 🔹 Añadido 'condicion' aquí
+        
         widgets = {
             'categoria_principal': forms.Select(attrs={
                 'class': 'form-control form-select',
@@ -22,12 +24,24 @@ class ActivoForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Ingrese el nombre del responsable'
             }),
+            'condicion': forms.RadioSelect(choices=[  # 🔹 Widget para radio buttons
+                ('operativo', 'Operativo'),
+                ('dañado', 'Dañado')
+            ], attrs={'class': 'form-check-input'})
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Inicializar con todas las subcategorías disponibles
         self.fields['subcategoria'].choices = [('', 'Seleccione una categoría principal primero')] + list(SUBCATEGORIAS)
+        
+        # IMPORTANTE: Para nuevos registros, activo debe ser False por defecto
+        if not self.instance.pk:
+            self.initial['activo'] = False
+        
+        # 🔹 Establecer valor por defecto para condicion
+        if not self.instance.pk or not self.instance.condicion:
+            self.initial['condicion'] = 'operativo'
 
     def clean(self):
         cleaned_data = super().clean()
@@ -36,7 +50,6 @@ class ActivoForm(forms.ModelForm):
         
         # Solo validar si ambos campos están completos
         if categoria_principal and subcategoria:
-            # Definir qué subcategorías pertenecen a cada categoría principal
             categorias_validas = {
                 'equipo_informatico': ['pc_escritorio', 'laptop', 'tablet', 'servidor', 'impresora', 'monitor', 'teclado', 'mouse'],
                 'mueble': ['escritorio', 'silla', 'archivador', 'estanteria', 'mesa'],
@@ -53,10 +66,11 @@ class ActivoForm(forms.ModelForm):
 
     def save(self, commit=True, departamento=None):
         activo = super().save(commit=False)
-        activo.condicion = 'operativo'
-        activo.activo = True
+        activo.activo = True 
+        
         if departamento:
             activo.departamento = departamento
+        
         
         if commit:
             activo.save()
