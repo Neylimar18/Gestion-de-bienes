@@ -1,5 +1,7 @@
+from datetime import timezone
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.timezone import now
 
 # 🔹 Lista de departamentos
 DEPARTAMENTOS = [
@@ -10,6 +12,10 @@ DEPARTAMENTOS = [
     ('Gerencia General', 'Gerencia General'),
     ('Jurídica', 'Jurídica'),
     ('Administración y Finanzas', 'Administración y Finanzas'),
+    ('Informática', 'Informática'),
+    ('Calidad de Gestion', 'Calidad de Gestion'),
+    ('GADT', 'GADT'),
+
 ]
 
 # 🔹 Categorías y subcategorías
@@ -23,7 +29,6 @@ CATEGORIAS_PRINCIPALES = [
 
 SUBCATEGORIAS = [
     # Equipos Informáticos
-    ('equipos informáticos','Equipos Informáticos'),
     ('pc_escritorio', 'PC de Escritorio'),
     ('laptop', 'Laptop'),
     ('tablet', 'Tablet'),
@@ -33,21 +38,18 @@ SUBCATEGORIAS = [
     ('teclado', 'Teclado'),
     ('mouse', 'Mouse'),
     # Muebles
-    ('mueble','Mueble'),
     ('escritorio', 'Escritorio'),
     ('silla', 'Silla'),
     ('archivador', 'Archivador'),
     ('estanteria', 'Estantería'),
     ('mesa', 'Mesa'),
     # Equipos Especializados
-    ('equipos especializados','Equipos Especializados'),
     ('scanner', 'Scanner'),
     ('proyector', 'Proyector'),
     ('telefono', 'Teléfono IP'),
     ('switch', 'Switch de Red'),
     ('router', 'Router'),
     # Otros
-    ('otro equipo', 'Otro Equipo'),
     ('herramienta', 'Herramienta'),
     ('material', 'Material de Oficina'),
 ]
@@ -81,11 +83,18 @@ class Activo(models.Model):
     fecha_registro = models.DateField(auto_now_add=True)
     activo = models.BooleanField(default=True)
 
+
+    departamento_anterior = models.CharField(max_length=100, blank=True, null=True)
+
+    transferido_por = models.CharField(max_length=100, blank=True, null=True)
+    recibido_por = models.CharField(max_length=100, blank=True, null=True)
+    cargo_entrega = models.CharField(max_length=100, blank=True, null=True)
+    cargo_recibe = models.CharField(max_length=100, blank=True, null=True)
     def __str__(self):
         return f"{self.codigo} - {self.descripcion}"
 
     def save(self, *args, **kwargs):
-        # 🔹 QUITAMOS la generación automática de código
+       
         # El código ahora debe ser ingresado manualmente por el usuario
         super().save(*args, **kwargs)
 
@@ -95,3 +104,23 @@ if not hasattr(User, 'departamento'):
         'departamento',
         models.CharField(max_length=50, choices=DEPARTAMENTOS, null=True, blank=True)
     )
+
+# models.py
+class TransferenciaActivo(models.Model):
+    activo = models.ForeignKey(Activo, on_delete=models.CASCADE, related_name='transferencias')
+    fecha_transferencia = models.DateTimeField(default=now)
+    departamento_origen = models.CharField(max_length=100)
+    departamento_destino = models.CharField(max_length=100)
+    transferido_por = models.CharField(max_length=100)
+    recibido_por = models.CharField(max_length=100)
+    cargo_entrega = models.CharField(max_length=100)
+    cargo_recibe = models.CharField(max_length=100)
+    observaciones = models.TextField(blank=True)
+    usuario_registro = models.CharField(max_length=100)
+    pdf_generado = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-fecha_transferencia']
+    
+    def __str__(self):
+        return f"{self.activo.codigo} - {self.departamento_origen} → {self.departamento_destino}"
